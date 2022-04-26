@@ -1,0 +1,169 @@
+# KrunkScript Copyright (C) Yendis Entertainment Pty Ltd
+# client
+bool scoped = false;
+bool tracer = true;
+
+obj storePlayer = {};
+obj tempPlayer ={};
+obj[] sortedList = GAME.PLAYERS.list();
+
+
+# TODO: change to better algo
+action sortList(){
+	
+	obj localPlayerObj = GAME.PLAYERS.getSelf();
+	obj[] listSnapshot = GAME.PLAYERS.list();
+	    
+     num swaps = 1;
+
+		while(swaps != 0){
+		swaps=0;
+		for (num i = 0; i < lengthOf listSnapshot - 1; i++) {
+
+		tempPlayer = listSnapshot[i + 1];
+
+		if(!!tempPlayer){
+			
+			obj listPlayer = listSnapshot[i];
+			
+			if(UTILS.getDist3D(tempPlayer.position.x, tempPlayer.position.y, tempPlayer.position.z, localPlayerObj.position.x, localPlayerObj.position.y, localPlayerObj.position.z) > UTILS.getDist3D(listPlayer.position.x, listPlayer.position.y, listPlayer.position.z, localPlayerObj.position.x, localPlayerObj.position.y, localPlayerObj.position.z)){
+				storePlayer = listPlayer;
+				listSnapshot[i] = tempPlayer;
+				listSnapshot[i + 1] = storePlayer;
+				swaps++;
+			}
+			
+		}else{
+			tempPlayer = listSnapshot[0];
+			break;
+		}
+
+		}
+	}
+sortedList = listSnapshot;
+	
+}	
+
+public action start(){
+
+}
+
+public action update(num delta) {
+	
+	obj localPlayerObj = GAME.PLAYERS.getSelf();
+	
+	GAME.SETTINGS.set("fov", '100');
+	GAME.SETTINGS.set("nametagStyle", '3');
+	GAME.SETTINGS.set("anonMode", 'false');
+	GAME.SETTINGS.set("scaleUI", '0.5');
+
+
+	obj window = GAME.OVERLAY.getSize();
+	num sidLocal = (num)localPlayerObj.sid;
+
+	obj[] players = sortedList;
+	
+	for (num i = 0; i < lengthOf players; i++) {
+					
+		
+		obj target = players[i];
+					
+		obj target2d = GAME.SCENE.posToScreen((num)target.position.x,(num)target.position.y + 10,(num)target.position.z);
+
+
+		num distToMid = UTILS.getDist2D((num)window.width / 2, (num)window.height / 2, (num)target2d.x, (num)target2d.y);
+		
+		if((num)target.sid != sidLocal && (num)target.health > 0){
+			if((num)distToMid < 100 && (bool)scoped && (bool)target2d.onScreen){
+				if(!target.isCrouching){
+					GAME.CAMERA.lookAt((num)target.position.x,(num)target.position.y + 10,(num)target.position.z);
+				}else{
+					GAME.CAMERA.lookAt((num)target.position.x,(num)target.position.y + 6,(num)target.position.z);
+				}
+			}
+		}
+	};
+
+}
+
+
+
+public action render(num delta) {
+	
+		
+	
+obj localPlayerObj = GAME.PLAYERS.getSelf();
+
+	
+obj window = GAME.OVERLAY.getSize();
+GAME.OVERLAY.drawCircle((num)window.width / 2,  (num)window.height / 2, 80, 80, 0, "#00ff00", 0.15, false);
+	
+
+	obj[] players = GAME.PLAYERS.list();
+
+	for (num i = 0; i < lengthOf players; i++) {
+						
+		
+		obj target = players[i];
+		
+			if((str)target.id != (str)localPlayerObj.id && (num)target.health > 0){
+				
+			num targetDist = UTILS.getDist3D((num)target.position.x, (num)target.position.y, (num)target.position.z, GAME.CAMERA.position.x,  GAME.CAMERA.position.y,  GAME.CAMERA.position.z);
+				
+			obj target2d = GAME.SCENE.posToScreen((num)target.position.x, (num)target.position.y, (num)target.position.z);
+
+			obj window = GAME.OVERLAY.getSize();
+
+
+	if((num)target2d.x > 0 && (num)target2d.y > 0 && (num)target2d.x <= (num)window.width && (num)target2d.y <= (num)window.height && (bool)target2d.onScreen){
+		
+		if(tracer){
+			GAME.OVERLAY.drawLine((num)window.width / 2, (num)window.height, (num)target2d.x , (num)target2d.y , 1.5, "#ff0000", 1);
+		}
+		GAME.OVERLAY.drawLine((num)target2d.x - (1800 / (num)targetDist) , (num)target2d.y, (num)target2d.x  + (1800 / (num)targetDist), (num)target2d.y , 2, "#ff0000", 1);
+			
+		GAME.OVERLAY.drawLine((num)target2d.x - (1800 / (num)targetDist) , (num)target2d.y, (num)target2d.x  - (1800 / (num)targetDist), (num)target2d.y - (7300 / (num)targetDist), 2, "#ff0000", 1);
+
+		GAME.OVERLAY.drawLine((num)target2d.x - (1800 / (num)targetDist) , (num)target2d.y - (7300 / (num)targetDist), (num)target2d.x  + (1800 / (num)targetDist), (num)target2d.y - (7300 / (num)targetDist) , 2, "#ff0000", 1);
+
+		GAME.OVERLAY.drawLine((num)target2d.x + (1800 / (num)targetDist) , (num)target2d.y, (num)target2d.x  + (1800 / (num)targetDist), (num)target2d.y - (7300 / (num)targetDist), 2, "#ff0000", 1);
+
+		
+		if(targetDist > 200){
+			GAME.OVERLAY.drawText(target.username, (num)target2d.x, (num)target2d.y - (8000 / (num)targetDist), 0, 2000 / (num)targetDist, "center", "#ffffff", 1);
+		}else{
+			GAME.OVERLAY.drawText(target.username, (num)target2d.x, (num)target2d.y - (8000 / (num)targetDist), 0, 10, "center", "#ffffff", 1);
+		}
+
+
+		}
+		}
+
+	}
+	
+}
+
+
+public action onKeyPress(str key, num code) {
+		if(key == "l"){
+		tracer = !tracer;
+	}
+}
+
+
+public action onMouseClick(num button, num x, num y) {
+	if(button == 3){
+		scoped = true;
+		sortList();
+	}
+}
+
+
+public action onMouseUp(num button, num x, num y) {
+	if(button == 3){
+		scoped = false;
+	}
+}
+
+
+# infi 3/2022
